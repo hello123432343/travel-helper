@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#667eea">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>여행 도우미</title>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
+</script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;background:linear-gradient(135deg,#667eea,#764ba2);min-height:100vh;color:#2d3436;padding-bottom:80px}
+header{padding:20px 16px 16px;color:white;text-align:center}
+header h1{font-size:22px;font-weight:700;margin-bottom:4px}
+header p{font-size:13px;opacity:.9}
+.container{max-width:600px;margin:0 auto;padding:0 12px}
+.tab-content{background:#f8f9fa;border-radius:16px;padding:18px;min-height:400px;box-shadow:0 4px 20px rgba(0,0,0,.1)}
+nav.tabs{position:fixed;bottom:0;left:0;right:0;background:white;border-top:1px solid #e0e0e0;display:flex;justify-content:space-around;padding:8px 4px;z-index:100}
+nav.tabs button{background:none;border:none;flex:1;padding:6px 2px;font-size:10px;color:#888;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;font-family:inherit}
+nav.tabs button .ico{font-size:22px}
+nav.tabs button.active{color:#667eea;font-weight:600}
+.panel{display:none}.panel.active{display:block}
+h2{font-size:18px;margin-bottom:14px}
+h3{font-size:15px;margin:16px 0 8px;color:#555}
+.card{background:white;border-radius:12px;padding:14px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.05)}
+.card.flight{border-left:4px solid #667eea}
+.row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.row:last-child{margin-bottom:0}
+.label{font-size:12px;color:#888}.val{font-size:14px;font-weight:600}.big{font-size:22px;font-weight:700}
+input,textarea,select{width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;font-family:inherit;background:white;margin-bottom:8px}
+textarea{min-height:80px}
+.btn{background:#667eea;color:white;border:none;padding:11px 16px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;width:100%;font-family:inherit}
+.btn.sec{background:#e0e0e0;color:#333}.btn.del{background:#e74c3c}
+.pill-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.pill{background:white;border:1px solid #ddd;padding:8px 14px;border-radius:20px;font-size:13px;cursor:pointer}
+.pill.active{background:#667eea;color:white;border-color:#667eea}
+.phrase{background:white;padding:12px;border-radius:10px;margin-bottom:8px;border-left:3px solid #764ba2}
+.phrase .ko{font-size:14px;font-weight:600}
+.phrase .fo{font-size:14px;color:#667eea;margin-top:4px}
+.phrase .pron{font-size:12px;color:#888;font-style:italic;margin-top:2px}
+.cl-item{display:flex;align-items:center;padding:10px 12px;background:white;border-radius:8px;margin-bottom:6px}
+.cl-item input{width:auto;margin:0 10px 0 0;transform:scale(1.3)}
+.cl-item.done{opacity:.5;text-decoration:line-through}
+.cl-item label{flex:1;font-size:14px;cursor:pointer}
+.sm-btn{background:#f0f0f0;border:none;padding:4px 10px;border-radius:6px;font-size:12px;color:#555;font-family:inherit;cursor:pointer}
+.empty{text-align:center;color:#888;padding:40px 16px;font-size:14px}
+.cd{background:linear-gradient(135deg,#667eea,#764ba2);color:white;border-radius:12px;padding:16px;text-align:center;margin-bottom:14px}
+.cd .num{font-size:32px;font-weight:700}
+details{background:white;border-radius:10px;margin-bottom:8px;overflow:hidden}
+details summary{padding:12px 14px;cursor:pointer;font-weight:600;font-size:14px}
+details .body{padding:0 14px 14px;font-size:13px;line-height:1.7;color:#555}
+.tag{display:inline-block;background:#f0f4ff;color:#667eea;padding:2px 8px;border-radius:4px;font-size:11px;margin-right:4px}
+.badge{background:rgba(255,255,255,.2);color:white;padding:3px 10px;border-radius:12px;font-size:11px;display:inline-block;margin:4px 2px 0}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat{background:white;padding:12px;border-radius:10px;text-align:center}
+.stat .n{font-size:20px;font-weight:700;color:#667eea}
+.stat .l{font-size:11px;color:#888}
+.msg{padding:10px 14px;border-radius:14px;margin-bottom:8px;max-width:85%;font-size:14px;line-height:1.5;word-break:break-word}
+.msg.bot{background:#f0f4ff}
+.msg.user{background:#667eea;color:white;margin-left:auto}
+</style>
+</head>
+<body>
+<header>
+<h1>✈️ 여행 도우미</h1>
+<p>비행기 안에서도 걱정 없이</p>
+<span class="badge">📵 오프라인 OK</span>
+<span class="badge" id="ns">🌐 온라인</span>
+</header>
+<div class="container"><div class="tab-content">
+
+<div class="panel active" id="p-home">
+<h2>🏠 내 여행</h2>
+<div id="cd-area"></div>
+<h3>⚡ 항공편 빠른 조회</h3>
+<div class="card">
+<p style="font-size:12px;color:#888;margin-bottom:8px">편명 입력 → 출발/도착/게이트/지연 표시</p>
+<input id="qf" placeholder="편명 (예: KE001)" style="text-transform:uppercase">
+<div class="g2"><button class="btn" onclick="autoLookup()">⚡ 자동 조회</button><button class="btn sec" onclick="lookupAPI()">🚀 API 조회</button></div>
+<button class="btn sec" onclick="openSearch()" style="margin-top:6px">🔍 Google 새 탭</button>
+<div id="fr" style="margin-top:10px"></div>
+<details style="margin-top:10px;background:#fffbe6">
+<summary style="padding:10px">⚙️ API 키 설정 (앱 안 조회용, 무료)</summary>
+<div class="body">
+<b>1.</b> aviationstack.com/signup/free 가입 (이메일만)<br>
+<b>2.</b> 대시보드의 API Access Key 복사<br>
+<b>3.</b> 아래 붙여넣기:<br>
+<input id="ak" placeholder="키 붙여넣기">
+<button class="btn" onclick="saveKey()">저장</button>
+<p id="aks" style="font-size:12px;color:#888;margin-top:6px"></p>
+<p style="font-size:11px;color:#888;margin-top:6px">키는 본인 브라우저에만 저장됨. 친구한테 파일 줘도 친구는 자기 키 발급해야 함.</p>
+</div>
+</details>
+</div>
+<h3>다가오는 항공편</h3>
+<div id="fl"></div>
+<button class="btn" onclick="document.getElementById('ff').style.display='block'">+ 새 항공편</button>
+<div id="ff" style="display:none;margin-top:14px"><div class="card">
+<input id="fa" placeholder="항공사">
+<input id="fn" placeholder="편명 (KE001)">
+<div class="g2"><input id="ff1" placeholder="출발 (ICN)"><input id="ff2" placeholder="도착 (NRT)"></div>
+<input id="fd" type="datetime-local">
+<input id="fg" placeholder="게이트">
+<input id="fs" placeholder="좌석">
+<button class="btn" onclick="saveFlight()">저장</button>
+<button class="btn sec" onclick="document.getElementById('ff').style.display='none'" style="margin-top:6px">취소</button>
+</div></div>
+</div>
+
+<div class="panel" id="p-chat">
+<h2>🤖 챗봇 (오프라인)</h2>
+<p style="font-size:12px;color:#888;margin-bottom:10px">35개 답변 미리 저장. 비행기 안에서도 작동.</p>
+<div id="cb" style="background:white;border-radius:12px;padding:12px;min-height:300px;max-height:400px;overflow-y:auto;margin-bottom:10px">
+<div class="msg bot">안녕하세요 ✈️<br>예시: 보조배터리, 환승, 여권분실, 멀미, 시차, 팁, 환전, 면세, 비자, 로밍...</div>
+</div>
+<div style="display:flex;gap:6px"><input id="ci" placeholder="질문 입력" onkeydown="if(event.key=='Enter')chat()" style="margin-bottom:0"><button class="btn" onclick="chat()" style="width:auto;padding:10px 16px">→</button></div>
+<div class="g2" style="margin-top:8px"><button class="btn sec" onclick="ask('chatgpt')">💬 ChatGPT</button><button class="btn sec" onclick="ask('google')">🔍 구글</button></div>
+<div class="pill-row" style="margin-top:10px">
+<span class="pill" onclick="qa('보조배터리')">배터리</span>
+<span class="pill" onclick="qa('환승')">환승</span>
+<span class="pill" onclick="qa('여권 분실')">여권</span>
+<span class="pill" onclick="qa('멀미')">멀미</span>
+<span class="pill" onclick="qa('팁')">팁</span>
+<span class="pill" onclick="qa('환전')">환전</span>
+<span class="pill" onclick="qa('면세')">면세</span>
+<span class="pill" onclick="qa('비자')">비자</span>
+</div>
+</div>
+
+<div class="panel" id="p-airport">
+<h2>🛫 공항 가이드</h2>
+<details open><summary>📋 출국 (3시간 전)</summary><div class="body">1. 체크인<br>2. 보안 검색<br>3. 출국 심사<br>4. 면세점<br>5. 30분 전 게이트</div></details>
+<details><summary>🛂 입국</summary><div class="body">1. 입국 심사<br>2. 신고서 제출<br>3. 짐 찾기<br>4. 세관</div></details>
+<details><summary>💧 액체 100ml</summary><div class="body">개별 100ml, 1L 지퍼백 1개. 면세 액체는 STEB 봉인.</div></details>
+<details><summary>🔄 환승</summary><div class="body">Transit 표지판 → 보안검색 다시 → 게이트 전광판 확인. 최소 1~2시간.</div></details>
+<details><summary>🆘 비행기 놓침</summary><div class="body">즉시 항공사 카운터 → Rebooking. 본인 과실은 추가요금.</div></details>
+</div>
+
+<div class="panel" id="p-phr">
+<h2>💬 회화 (오프라인)</h2>
+<div class="pill-row" id="lp">
+<span class="pill active" onclick="setL('en')">English</span>
+<span class="pill" onclick="setL('ja')">日本語</span>
+<span class="pill" onclick="setL('zh')">中文</span>
+<span class="pill" onclick="setL('es')">Español</span>
+</div>
+<div class="pill-row" id="cp">
+<span class="pill active" onclick="setC('air')">공항</span>
+<span class="pill" onclick="setC('hot')">호텔</span>
+<span class="pill" onclick="setC('food')">식당</span>
+<span class="pill" onclick="setC('shop')">쇼핑</span>
+<span class="pill" onclick="setC('em')">응급</span>
+<span class="pill" onclick="setC('bas')">기본</span>
+</div>
+<div id="phl"></div>
+</div>
+
+<div class="panel" id="p-pl">
+<h2>📍 장소</h2>
+<h3>🌐 검색</h3>
+<div class="card">
+<input id="sq" placeholder="예: 도쿄 라멘">
+<div class="g2"><button class="btn" onclick="ws('google')">🔍 구글</button><button class="btn" onclick="ws('map')">🗺 지도</button><button class="btn sec" onclick="ws('yt')">▶ YT</button><button class="btn sec" onclick="ws('blog')">📝 블로그</button></div>
+</div>
+<h3>📌 찜한 곳</h3>
+<div class="card">
+<input id="pn" placeholder="이름">
+<select id="pt"><option>🍜 음식</option><option>🏛 관광</option><option>🛍 쇼핑</option><option>🏨 숙소</option><option>☕ 카페</option></select>
+<input id="pa" placeholder="주소">
+<textarea id="pm" placeholder="메모"></textarea>
+<button class="btn" onclick="savePl()">+ 추가</button>
+</div>
+<div id="pll"></div>
+</div>
+
+<div class="panel" id="p-cl">
+<h2>✅ 체크리스트</h2>
+<div class="pill-row">
+<span class="pill active" onclick="setCL('before')">출발 전</span>
+<span class="pill" onclick="setCL('pack')">짐싸기</span>
+<span class="pill" onclick="setCL('day')">당일</span>
+</div>
+<div id="cla"></div>
+<div class="card" style="margin-top:14px">
+<input id="cn" placeholder="항목 추가">
+<button class="btn" onclick="addCL()">+ 추가</button>
+</div>
+</div>
+
+<div class="panel" id="p-misc">
+<h2>🧭 정보</h2>
+<h3>💱 환율 메모</h3>
+<div class="card">
+<input id="rc" placeholder="통화 (JPY)">
+<input id="rv" type="number" placeholder="100단위 = 몇 원" step=".01">
+<button class="btn" onclick="saveR()">저장</button>
+<div id="rl" style="margin-top:10px"></div>
+</div>
+<h3>🧮 계산기</h3>
+<div class="card">
+<select id="cc" onchange="calc()"></select>
+<input id="ca" type="number" placeholder="현지 금액" oninput="calc()">
+<div id="cr" class="big" style="text-align:center;padding:8px">— 원</div>
+</div>
+<h3>🆘 응급</h3>
+<details><summary>응급 번호</summary><div class="body">🇰🇷 112·119 🇺🇸 911 🇯🇵 110·119 🇨🇳 110·120 🇪🇺 112 🇬🇧 999 🇹🇭 191·1669<br>📞 영사콜센터 +82-2-3210-0404</div></details>
+<details><summary>여권 분실</summary><div class="body">1. 현지 경찰서 분실증명<br>2. 한국 영사관<br>3. 사진 2매·신분증 사본<br>📞 +82-2-3210-0404</div></details>
+<details><summary>팁 문화</summary><div class="body">🇺🇸 15~20% 🇪🇺 5~10% 🇯🇵🇨🇳🇰🇷 없음 🇹🇭 20~50바트</div></details>
+<h3>📊 통계</h3>
+<div class="g2"><div class="stat"><div class="n" id="sf">0</div><div class="l">항공편</div></div><div class="stat"><div class="n" id="sp">0</div><div class="l">장소</div></div></div>
+<h3 style="margin-top:18px">🗑 데이터</h3>
+<button class="btn sec" onclick="exportD()">📤 백업</button>
+<button class="btn del" onclick="resetA()" style="margin-top:6px">초기화</button>
+</div>
+
+</div></div>
+
+<nav class="tabs">
+<button onclick="show('home')" id="t-home" class="active"><span class="ico">🏠</span><span>홈</span></button>
+<button onclick="show('chat')" id="t-chat"><span class="ico">🤖</span><span>챗봇</span></button>
+<button onclick="show('airport')" id="t-airport"><span class="ico">🛫</span><span>공항</span></button>
+<button onclick="show('phr')" id="t-phr"><span class="ico">💬</span><span>회화</span></button>
+<button onclick="show('pl')" id="t-pl"><span class="ico">📍</span><span>장소</span></button>
+<button onclick="show('cl')" id="t-cl"><span class="ico">✅</span><span>체크</span></button>
+<button onclick="show('misc')" id="t-misc"><span class="ico">🧭</span><span>정보</span></button>
+</nav>
+
+<script>
+// =========== 데이터 ===========
+const KEY='th-v3';
+let DB=JSON.parse(localStorage.getItem(KEY)||'{}');
+DB.flights=DB.flights||[];DB.places=DB.places||[];DB.rates=DB.rates||[];
+DB.cl=DB.cl||{};DB.cld=DB.cld||{};DB.ak=DB.ak||'';
+function s(){localStorage.setItem(KEY,JSON.stringify(DB))}
+const DCL={
+before:['여권 6개월 이상','비자/ESTA','여행자보험','환전/트래블카드','예약 확인서','로밍/유심/eSIM'],
+pack:['여권+사본','카드 2장','현금 소액','충전기+어댑터','보조배터리(휴대)','상비약·멀미약','100ml 세면도구','편한 신발','목베개·안대','우산'],
+day:['여권','모바일 체크인','액체류 정리','보조배터리 휴대','집 단속','3시간 전 도착','게이트 확인']
+};
+['before','pack','day'].forEach(k=>{if(!DB.cl[k]||DB.cl[k].length===0)DB.cl[k]=DCL[k].slice()});
+s();
+
+// =========== 탭 ===========
+function show(n){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.remove('active'));
+  document.getElementById('p-'+n).classList.add('active');
+  document.getElementById('t-'+n).classList.add('active');
+  if(n==='home')renderF();
+  if(n==='pl')renderPL();
+  if(n==='cl')renderCL();
+  if(n==='misc'){renderR();renderS();fillC()}
+  if(n==='phr')renderPH();
+}
+
+// =========== 공통 ===========
+function v(id){return document.getElementById(id).value||''}
+function go(url){window.open(url,'_blank')}
+
+// =========== 항공편 저장 ===========
+function saveFlight(){
+  const f={id:Date.now(),airline:v('fa'),num:v('fn'),from:v('ff1'),to:v('ff2'),depart:v('fd'),gate:v('fg'),seat:v('fs')};
+  if(!f.num&&!f.airline){alert('항공사/편명 입력');return}
+  DB.flights.push(f);s();
+  ['fa','fn','ff1','ff2','fd','fg','fs'].forEach(i=>document.getElementById(i).value='');
+  document.getElementById('ff').style.display='none';renderF();
+}
+function delF(id){if(!confirm('삭제?'))return;DB.flights=DB.flights.filter(f=>f.id!==id);s();renderF()}
+function renderF(){
+  const list=document.getElementById('fl'),cd=document.getElementById('cd-area');
+  const up=DB.flights.filter(f=>f.depart&&new Date(f.depart)>new Date()).sort((a,b)=>new Date(a.depart)-new Date(b.depart));
+  if(up.length>0){
+    const n=up[0],d=new Date(n.depart)-new Date();
+    cd.innerHTML='<div class="cd"><div class="label" style="color:white">다음 비행까지</div><div class="num">'+Math.floor(d/86400000)+'일 '+Math.floor(d%86400000/3600000)+'시간</div><div style="font-size:12px;opacity:.9">'+(n.from||'?')+' → '+(n.to||'?')+' · '+n.airline+' '+n.num+'</div></div>';
+  }else cd.innerHTML='';
+  if(DB.flights.length===0){list.innerHTML='<div class="empty">등록된 항공편 없음</div>';return}
+  list.innerHTML=DB.flights.map(f=>{
+    const dt=f.depart?new Date(f.depart).toLocaleString('ko-KR',{month:'short',day:'numeric',weekday:'short',hour:'2-digit',minute:'2-digit'}):'미정';
+    return '<div class="card flight"><div class="row"><div><div class="big">'+(f.from||'?')+' → '+(f.to||'?')+'</div><div class="label">'+f.airline+' '+f.num+'</div></div><button class="sm-btn" onclick="delF('+f.id+')">삭제</button></div><div class="row"><span class="label">출발</span><span class="val">'+dt+'</span></div>'+(f.gate?'<div class="row"><span class="label">게이트</span><span class="val">'+f.gate+'</span></div>':'')+(f.seat?'<div class="row"><span class="label">좌석</span><span class="val">'+f.seat+'</span></div>':'')+'</div>';
+  }).join('');
+}
+
+// =========== API 키 / 항공편 조회 ===========
+function saveKey(){const k=v('ak').trim();if(!k){alert('키 입력');return}DB.ak=k;s();document.getElementById('aks').innerText='✅ 저장됨'}
+function loadKey(){if(DB.ak){document.getElementById('ak').value=DB.ak;document.getElementById('aks').innerText='✅ 저장된 키 사용'}}
+async function lookupAPI(){
+  const num=v('qf').trim().toUpperCase().replace(/\s/g,''),out=document.getElementById('fr');
+  if(!num){alert('편명 입력');return}
+  if(!navigator.onLine){out.innerHTML='<div class="card">📵 오프라인</div>';return}
+  if(!DB.ak){out.innerHTML='<div class="card" style="background:#fffbe6">⚠️ API 키 먼저 설정 (아래 펼치기)<br>키 없이 쓰려면 <b>구글 검색</b> 버튼</div>';return}
+  out.innerHTML='<div class="card">⏳ 조회 중...</div>';
+  try{
+    const r=await fetch('http://api.aviationstack.com/v1/flights?access_key='+DB.ak+'&flight_iata='+num);
+    const d=await r.json();
+    if(d.error){out.innerHTML='<div class="card">❌ '+(d.error.message||'오류')+'</div>';return}
+    if(!d.data||d.data.length===0){out.innerHTML='<div class="card">😶 못 찾음. 편명 형식 확인</div>';return}
+    renderAPI(d.data[0],out);
+  }catch(e){out.innerHTML='<div class="card">❌ '+e.message+'<br><span style="font-size:12px">HTTPS 페이지에서는 막힐 수 있어요. 그땐 구글 검색 사용.</span></div>'}
+}
+function renderAPI(f,out){
+  const sm={scheduled:'🕐 정상',active:'✈️ 비행 중',landed:'🛬 도착',cancelled:'❌ 결항',diverted:'↩️ 회항'};
+  const fmt=d=>d?new Date(d).toLocaleString('ko-KR',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'-';
+  const dep=f.departure||{},arr=f.arrival||{};
+  let adv='';
+  if(dep.scheduled){
+    const t=new Date(dep.scheduled),hb=(arr.iata&&dep.iata&&arr.iata[0]!==dep.iata[0])?3:2;
+    const ab=new Date(t.getTime()-hb*3600000);
+    adv='<div style="background:#fff7e6;padding:10px;border-radius:8px;margin-top:8px"><b>🎯 공항 도착 권장</b><br>'+ab.toLocaleString('ko-KR',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})+' 까지 ('+hb+'시간 전)</div>';
+  }
+  out.innerHTML='<div class="card flight"><div class="row"><div><div class="big">'+(dep.iata||'?')+' → '+(arr.iata||'?')+'</div><div class="label">'+(f.airline?.name||'')+' '+(f.flight?.iata||'')+'</div></div><div style="background:#667eea;color:white;padding:6px 12px;border-radius:14px;font-size:12px">'+(sm[f.flight_status]||f.flight_status)+'</div></div><h3 style="font-size:13px">🛫 출발</h3><div class="row"><span class="label">공항</span><span class="val">'+(dep.airport||'-')+'</span></div><div class="row"><span class="label">예정</span><span class="val">'+fmt(dep.scheduled)+'</span></div>'+(dep.delay?'<div class="row"><span class="label">지연</span><span class="val" style="color:#e74c3c">+'+dep.delay+'분</span></div>':'')+(dep.terminal?'<div class="row"><span class="label">터미널</span><span class="val">'+dep.terminal+'</span></div>':'')+(dep.gate?'<div class="row"><span class="label">게이트</span><span class="val" style="color:#667eea">'+dep.gate+'</span></div>':'')+'<h3 style="font-size:13px">🛬 도착</h3><div class="row"><span class="label">공항</span><span class="val">'+(arr.airport||'-')+'</span></div><div class="row"><span class="label">예정</span><span class="val">'+fmt(arr.scheduled)+'</span></div>'+(arr.delay?'<div class="row"><span class="label">지연</span><span class="val" style="color:#e74c3c">+'+arr.delay+'분</span></div>':'')+(arr.terminal?'<div class="row"><span class="label">터미널</span><span class="val">'+arr.terminal+'</span></div>':'')+(arr.gate?'<div class="row"><span class="label">게이트</span><span class="val" style="color:#667eea">'+arr.gate+'</span></div>':'')+adv+'</div>';
+}
+function openSearch(){const n=v('qf').trim().toUpperCase();if(!n){alert('편명 입력');return}go('https://www.google.com/search?q='+encodeURIComponent(n+' flight status'))}
+
+// Capacitor 환경 감지 + 자동 조회 (네이티브 HTTP, CORS 없음)
+function isCapacitor(){return !!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform())}
+async function autoLookup(){
+  const num=v('qf').trim().toUpperCase().replace(/\s/g,''),out=document.getElementById('fr');
+  if(!num){alert('편명 입력');return}
+  out.innerHTML='<div class="card">⏳ Google에서 자동 조회 중...</div>';
+  try{
+    // Capacitor APK에서는 patchHttp로 fetch가 자동으로 네이티브 HTTP 사용 → CORS 없음
+    // 웹/PWA에서는 CORS로 막히면 안내
+    const url='https://www.google.com/search?q='+encodeURIComponent(num+' flight status')+'&hl=ko';
+    const r=await fetch(url,{
+      headers:{
+        'User-Agent':'Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
+        'Accept-Language':'ko-KR,ko;q=0.9,en;q=0.8'
+      }
+    });
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    const html=await r.text();
+    const parsed=parseFlight(html,num);
+    renderAutoLookup(parsed,out);
+  }catch(e){
+    if(!isCapacitor()){
+      out.innerHTML='<div class="card" style="background:#fffbe6">⚠️ 웹 브라우저에서는 CORS 보안으로 자동 조회가 막혀요.<br><br>📱 <b>안드로이드 앱 버전</b>에서는 이 버튼이 진짜 작동해요!<br><br>지금은 <b>🔍 Google 새 탭</b> 또는 <b>🚀 API 조회</b>를 사용해주세요.</div>';
+    }else{
+      out.innerHTML='<div class="card">❌ '+e.message+'</div>';
+    }
+  }
+}
+function parseFlight(html,num){
+  const r={num:num,raw:''};
+  const tm=html.match(/(\d{1,2}:\d{2}\s?(?:AM|PM|오전|오후)?)/g);
+  if(tm)r.times=tm.slice(0,4);
+  const gm=html.match(/게이트[:\s]+([A-Z]?\d+)/i)||html.match(/Gate[:\s]+([A-Z]?\d+)/i);
+  if(gm)r.gate=gm[1];
+  const tem=html.match(/터미널[:\s]+(\d+|[A-Z])/i)||html.match(/Terminal[:\s]+(\d+|[A-Z])/i);
+  if(tem)r.terminal=tem[1];
+  if(html.match(/정시|on time/i))r.status='정시';
+  else if(html.match(/지연|delayed/i))r.status='지연';
+  else if(html.match(/결항|cancelled/i))r.status='결항';
+  else if(html.match(/도착|landed/i))r.status='도착';
+  const dm=html.match(/(\d+)\s*분\s*지연/i)||html.match(/delayed\s*(\d+)\s*min/i);
+  if(dm)r.delay=parseInt(dm[1]);
+  const im=html.match(/\b([A-Z]{3})\b\s*[→\-–]\s*\b([A-Z]{3})\b/);
+  if(im){r.from=im[1];r.to=im[2]}
+  return r;
+}
+function renderAutoLookup(r,out){
+  let h='<div class="card flight"><div class="row"><div><div class="big">'+(r.from||'?')+' → '+(r.to||'?')+'</div><div class="label">'+r.num+'</div></div>';
+  if(r.status)h+='<div style="background:#667eea;color:white;padding:6px 12px;border-radius:14px;font-size:12px">'+r.status+(r.delay?(' +'+r.delay+'분'):'')+'</div>';
+  h+='</div>';
+  if(r.times&&r.times.length>0)h+='<div class="row"><span class="label">시간</span><span class="val">'+r.times.join(' / ')+'</span></div>';
+  if(r.gate)h+='<div class="row"><span class="label">게이트</span><span class="val" style="color:#667eea">'+r.gate+'</span></div>';
+  if(r.terminal)h+='<div class="row"><span class="label">터미널</span><span class="val">'+r.terminal+'</span></div>';
+  if(!r.times&&!r.gate&&!r.status)h+='<div class="label" style="margin-top:8px">정보를 찾지 못했어요. 다른 조회 방법을 써보세요.</div>';
+  h+='<p style="font-size:11px;color:#888;margin-top:8px">⚡ Google 검색결과 자동 파싱. 누락될 수 있어요.</p></div>';
+  out.innerHTML=h;
+}
+
+// =========== 챗봇 ===========
+const KB=[
+{k:['보조배터리','배터리','파워뱅크'],a:'<b>🔋 배터리</b><br>• 반드시 기내 휴대 (위탁 금지)<br>• 100Wh 이하 OK<br>• 100~160Wh 항공사 승인<br>• 단자 절연'},
+{k:['기내','반입','휴대','캐리어'],a:'<b>✈️ 기내 반입</b><br>• 보조배터리·라이터 → 휴대만<br>• 액체 100ml, 1L 지퍼백<br>• 도검·라이터 기름 금지'},
+{k:['환승','갈아타','transit'],a:'<b>🔄 환승</b><br>1. Transit 표지판<br>2. 보안검색 다시<br>3. 게이트 전광판<br>4. 짐 자동 환승<br>5. 최소 1~2시간'},
+{k:['여권','분실','passport'],a:'<b>🆘 여권 분실</b><br>1. 현지 경찰서 분실증명<br>2. 한국 영사관<br>3. 사진 2매, 신분증 사본<br>📞 +82-2-3210-0404'},
+{k:['멀미','어지러'],a:'<b>🤢 비행기 멀미</b><br>• 출발 30분~1시간 전 멀미약<br>• 날개 위 좌석<br>• 빈속·과식 NO<br>• 술·커피 자제'},
+{k:['시차','jet lag'],a:'<b>🌏 시차 적응</b><br>• 비행 중 도착지 시간으로 시계<br>• 도착 후 햇빛 30분<br>• 멜라토닌 0.5~3mg'},
+{k:['짐 분실','수하물 잃'],a:'<b>🧳 짐 분실</b><br>1. Lost & Found 카운터<br>2. 짐표 제시<br>3. 분실신고서 PIR<br>4. 24~48시간 내 보통 찾음<br>5. 여행자보험'},
+{k:['팁','tip'],a:'<b>💵 팁</b><br>🇺🇸 15~20%<br>🇪🇺 5~10%<br>🇯🇵🇨🇳🇰🇷 없음<br>🇹🇭 20~50바트'},
+{k:['출국','체크인'],a:'<b>🛫 출국 (3시간 전)</b><br>1. 체크인<br>2. 보안검색<br>3. 출국심사<br>4. 면세점<br>5. 30분 전 게이트'},
+{k:['입국','immigration'],a:'<b>🛬 입국</b><br>1. 입국심사<br>2. 신고서<br>3. 짐 찾기<br>4. 세관'},
+{k:['응급','911','112','병원'],a:'<b>🆘 응급</b><br>🇰🇷 112·119  🇺🇸 911<br>🇯🇵 110·119  🇪🇺 112<br>📞 영사 +82-2-3210-0404'},
+{k:['환전','달러','엔','유로'],a:'<b>💱 환전</b><br>• 시내 은행 유리<br>• 트래블월렛/트래블로그 0%<br>• 결제 시 현지통화 선택 (DCC 거부)'},
+{k:['로밍','유심','esim'],a:'<b>📱 데이터</b><br>• 로밍: 1일 1.1만~<br>• eSIM: Airalo·Holafly<br>• 포켓 와이파이: 공유'},
+{k:['보험','여행자'],a:'<b>🛡 여행자보험</b><br>• 1주일 1~3만원<br>• 의료/휴대품/항공지연 포함<br>• 영수증·진단서 보관'},
+{k:['이코노미','다리'],a:'<b>🦵 이코노미 증후군</b><br>• 1시간마다 일어나기<br>• 발목 돌리기<br>• 압박 스타킹'},
+{k:['게이트','지연'],a:'<b>🚪 탑승</b><br>• 게이트 변경 가능<br>• 30~40분 전 시작<br>• 마감 15~20분 전'},
+{k:['비자','visa','esta'],a:'<b>🛂 비자</b><br>🇺🇸 ESTA $21<br>🇨🇦 eTA $7<br>🇬🇧 ETA 10£<br>🇪🇺 ETIAS 도입'},
+{k:['액체','100ml'],a:'<b>💧 액체</b><br>• 100ml 이하<br>• 1L 지퍼백<br>• 의약품 별도'},
+{k:['술','담배','면세'],a:'<b>🚬 면세 한도 (한국 입국)</b><br>• 술 2병 (2L, $400)<br>• 담배 200개비<br>• 향수 60ml<br>• 기타 $800'},
+{k:['콘센트','전기','220'],a:'<b>🔌 콘센트</b><br>🇰🇷🇪🇺 220V C/F<br>🇺🇸🇯🇵 110V A<br>🇬🇧 230V G<br>💡 멀티 어댑터'},
+{k:['우버','택시','그랩'],a:'<b>🚕 이동</b><br>• Uber 미·유·동남아<br>• Grab 동남아<br>• Didi 중국<br>• 일본 GO'},
+{k:['지하철','교통카드'],a:'<b>🚇 교통카드</b><br>🇯🇵 Suica<br>🇭🇰 옥토퍼스<br>🇨🇳 알리페이<br>🇸🇬 EZ-Link<br>🇬🇧 오이스터'},
+{k:['수돗물'],a:'<b>💧 수돗물</b><br>✅ 한·일·미·서유럽·호주<br>⚠️ 동남아·인도·중국 → 생수만'},
+{k:['소매치기','도난'],a:'<b>🚨 소매치기</b><br>⚠️ 바르셀로나·로마·파리<br>• 백팩 앞으로<br>• 카페 폰 위 NO'},
+{k:['항공권 싸','저렴'],a:'<b>✈️ 절약</b><br>• 스카이스캐너·구글 플라이트<br>• 2~3개월 전, 화·수<br>• 시크릿 모드'},
+{k:['라운지'],a:'<b>🛋 라운지</b><br>• 프리미엄 카드<br>• Priority Pass<br>• 비즈/일등석 무료'},
+{k:['수면','잠','베개'],a:'<b>😴 기내 숙면</b><br>• 창가석<br>• 안대+귀마개+목베개<br>• 압박 양말'},
+{k:['아이','어린이','임산부'],a:'<b>👶 아이/임산부</b><br>• 유아 어른 무릎<br>• 바시넷 사전 신청<br>• 임산부 28~36주 의사 소견서'},
+{k:['반려동물','강아지','고양이'],a:'<b>🐶 반려동물</b><br>• 2주~1달 전 예약<br>• 기내 7kg 이하<br>• 검역증명서<br>• 광견병 접종'},
+{k:['약 반입','처방전'],a:'<b>💊 의약품</b><br>• 일반 상비약 OK<br>• 처방약 영문 처방전<br>• 일본 Yakkan Shomei'},
+{k:['세금환급','tax refund','vat'],a:'<b>💰 부가세 환급</b><br>• Tax Free 매장<br>• 출국 시 세관 도장<br>• 환급은 현금/카드'},
+{k:['추천','맛집','관광'],a:'<b>📍 맛집</b><br>장소 탭의 검색 버튼 활용<br>미리 저장하면 비행 중에도 OK'},
+{k:['알레르기','채식','vegan'],a:'<b>🍽 식이</b><br>"I am vegetarian"<br>"Halal only"<br>특별식 24~72시간 전 신청'},
+{k:['셀프체크인','키오스크'],a:'<b>📲 셀프 체크인</b><br>• 모바일 24시간 전<br>• 웹·키오스크<br>• 저가항공 필수'},
+{k:['긴급','대사관','영사관'],a:'<b>🇰🇷 영사콜센터</b><br>📞 +82-2-3210-0404<br>24시간 무료<br>통역·의료·변호사 안내'}
+];
+function findA(q){
+  const t=q.toLowerCase().replace(/[?.!,]/g,'');
+  let b=null,bs=0;
+  for(const i of KB){let sc=0;for(const w of i.k){if(t.includes(w.toLowerCase()))sc+=w.length}if(sc>bs){bs=sc;b=i}}
+  return b;
+}
+function addM(h,w){const b=document.getElementById('cb'),d=document.createElement('div');d.className='msg '+w;d.innerHTML=h;b.appendChild(d);b.scrollTop=b.scrollHeight}
+function chat(){
+  const i=document.getElementById('ci'),q=i.value.trim();if(!q)return;
+  addM(q,'user');i.value='';
+  setTimeout(()=>{const f=findA(q);if(f)addM(f.a,'bot');else addM('그 질문 답변 없음 😅<br>'+(navigator.onLine?'<br>아래 ChatGPT/구글 버튼 활용':'<br>오프라인 상태')+'<br><br>다른 키워드: 환승, 여권, 멀미, 팁, 비자, 환전, 면세, 로밍 등','bot')},200);
+}
+function qa(q){document.getElementById('ci').value=q;chat()}
+function ask(t){
+  const q=v('ci').trim()||prompt('질문:');if(!q)return;
+  if(!navigator.onLine){alert('오프라인');return}
+  if(t==='chatgpt')go('https://chatgpt.com/?q='+encodeURIComponent('여행: '+q));
+  else go('https://www.google.com/search?q='+encodeURIComponent(q));
+}
+
+// =========== 회화 ===========
+const PH={
+air:[
+{ko:'제 자리는 어디인가요?',en:{f:'Where is my seat?',p:'웨얼 이즈 마이 씻'},ja:{f:'私の席はどこですか',p:'와따시노 세키와 도꼬데스까'},zh:{f:'我的座位在哪里',p:'워더 쭤웨이 짜이날리'},es:{f:'¿Dónde está mi asiento?',p:'돈데 에스타 미 아시엔또'}},
+{ko:'게이트가 어디인가요?',en:{f:'Where is the gate?',p:'웨얼 이즈 더 게이트'},ja:{f:'ゲートはどこですか',p:'게또와 도꼬데스까'},zh:{f:'登机口在哪里',p:'떵지커우 짜이날리'},es:{f:'¿Dónde está la puerta?',p:'돈데 에스타 라 뿌에르따'}},
+{ko:'환승하려고 합니다',en:{f:'I am transferring',p:'아이 엠 트랜스퍼링'},ja:{f:'乗り継ぎです',p:'노리츠기데스'},zh:{f:'我要转机',p:'워야오 좐지'},es:{f:'Tengo conexión',p:'뗑고 꼬넥시온'}}
+],
+hot:[
+{ko:'체크인 부탁합니다',en:{f:'Check in please',p:'체크인 플리즈'},ja:{f:'チェックインお願いします',p:'체꾸인 오네가이시마스'},zh:{f:'我要办理入住',p:'워야오 빤리 루쭈'},es:{f:'Quiero registrarme',p:'끼에로 레히스뜨라르메'}},
+{ko:'와이파이 비번 알려주세요',en:{f:'WiFi password please',p:'와이파이 패스워드 플리즈'},ja:{f:'Wi-Fiのパスワード',p:'와이파이노 파스와도'},zh:{f:'WiFi密码',p:'와이파이 미마'},es:{f:'¿Contraseña WiFi?',p:'꼰뜨라세냐 위피'}}
+],
+food:[
+{ko:'메뉴 보여주세요',en:{f:'The menu please',p:'더 메뉴 플리즈'},ja:{f:'メニューを見せて',p:'메뉴오 미세떼'},zh:{f:'请给我菜单',p:'칭 게이워 차이딴'},es:{f:'El menú',p:'엘 메누'}},
+{ko:'이거 주세요',en:{f:'I will have this',p:'아일 해브 디스'},ja:{f:'これをください',p:'코레오 쿠다사이'},zh:{f:'我要这个',p:'워야오 쩌거'},es:{f:'Quiero esto',p:'끼에로 에스또'}},
+{ko:'안 매운 걸로',en:{f:'Not spicy',p:'낫 스파이시'},ja:{f:'辛くないもの',p:'카라쿠나이모노'},zh:{f:'不要辣的',p:'부야오 라더'},es:{f:'No picante',p:'노 삐깐떼'}},
+{ko:'계산서 주세요',en:{f:'Check please',p:'체크 플리즈'},ja:{f:'お会計',p:'오카이께'},zh:{f:'买单',p:'마이딴'},es:{f:'La cuenta',p:'라 꾸엔따'}}
+],
+shop:[
+{ko:'얼마예요?',en:{f:'How much?',p:'하우 머치'},ja:{f:'いくらですか',p:'이꾸라데스까'},zh:{f:'多少钱',p:'뚜어샤오 치엔'},es:{f:'¿Cuánto cuesta?',p:'꽌또 꾸에스따'}},
+{ko:'좀 깎아주세요',en:{f:'Discount please',p:'디스카운트 플리즈'},ja:{f:'安くしてください',p:'야스꾸시떼 쿠다사이'},zh:{f:'便宜一点',p:'피엔이 이디엔'},es:{f:'Descuento',p:'데스꾸엔또'}}
+],
+em:[
+{ko:'도와주세요!',en:{f:'Help me!',p:'헬프 미'},ja:{f:'助けてください',p:'타스께떼 쿠다사이'},zh:{f:'请帮帮我',p:'칭 빵빵워'},es:{f:'¡Ayúdeme!',p:'아유데메'}},
+{ko:'경찰을 불러주세요',en:{f:'Call the police',p:'콜 더 폴리스'},ja:{f:'警察を呼んで',p:'케사츠오 욘데'},zh:{f:'请叫警察',p:'칭 자오 징차'},es:{f:'Policía',p:'뽈리시아'}},
+{ko:'병원에 가야 해요',en:{f:'I need a hospital',p:'아이 니드 어 호스피털'},ja:{f:'病院に行きたい',p:'뵤인니 이끼따이'},zh:{f:'我要去医院',p:'워야오 취 이위안'},es:{f:'Hospital',p:'오스피딸'}}
+],
+bas:[
+{ko:'안녕하세요',en:{f:'Hello',p:'헬로'},ja:{f:'こんにちは',p:'콘니찌와'},zh:{f:'你好',p:'니하오'},es:{f:'Hola',p:'올라'}},
+{ko:'감사합니다',en:{f:'Thank you',p:'땡큐'},ja:{f:'ありがとう',p:'아리가또'},zh:{f:'谢谢',p:'쎼쎼'},es:{f:'Gracias',p:'그라시아스'}},
+{ko:'죄송합니다',en:{f:'Sorry',p:'쏘리'},ja:{f:'すみません',p:'스미마셍'},zh:{f:'对不起',p:'뚜이부치'},es:{f:'Perdón',p:'뻬르돈'}},
+{ko:'영어 하세요?',en:{f:'Speak English?',p:'스픽 잉글리쉬'},ja:{f:'英語話せますか',p:'에고 하나세마스까'},zh:{f:'会说英语吗',p:'후이 슈어 잉위마'},es:{f:'¿Inglés?',p:'잉글레스'}},
+{ko:'화장실 어디?',en:{f:'Where is bathroom?',p:'웨얼 베쓰룸'},ja:{f:'トイレはどこ',p:'토이레와 도꼬'},zh:{f:'洗手间在哪',p:'시셔우지엔 짜이날'},es:{f:'¿Dónde el baño?',p:'돈데 엘 바뇨'}}
+]
+};
+let cL='en',cC='air';
+function setL(l){cL=l;document.querySelectorAll('#lp .pill').forEach((p,i)=>p.classList.toggle('active',['en','ja','zh','es'][i]===l));renderPH()}
+function setC(c){cC=c;document.querySelectorAll('#cp .pill').forEach((p,i)=>p.classList.toggle('active',['air','hot','food','shop','em','bas'][i]===c));renderPH()}
+function renderPH(){
+  const list=PH[cC]||[];
+  document.getElementById('phl').innerHTML=list.map(p=>'<div class="phrase"><div class="ko">🇰🇷 '+p.ko+'</div><div class="fo">'+p[cL].f+'</div><div class="pron">'+p[cL].p+'</div></div>').join('');
+}
+
+// =========== 장소 ===========
+function savePl(){
+  const p={id:Date.now(),name:v('pn'),type:document.getElementById('pt').value,addr:v('pa'),memo:v('pm')};
+  if(!p.name){alert('이름');return}DB.places.push(p);s();
+  ['pn','pa','pm'].forEach(i=>document.getElementById(i).value='');renderPL();
+}
+function delPl(id){if(!confirm('삭제?'))return;DB.places=DB.places.filter(p=>p.id!==id);s();renderPL()}
+function renderPL(){
+  const list=document.getElementById('pll');
+  if(DB.places.length===0){list.innerHTML='<div class="empty">저장된 장소 없음</div>';return}
+  list.innerHTML=DB.places.slice().reverse().map(p=>'<div class="card"><div class="row"><div><span class="tag">'+p.type+'</span><div class="val" style="margin-top:4px;font-size:15px">'+p.name+'</div></div><div style="display:flex;gap:4px"><button class="sm-btn" onclick="mapO(\''+(p.addr||p.name).replace(/'/g,'')+'\')">🗺</button><button class="sm-btn" onclick="delPl('+p.id+')">×</button></div></div>'+(p.addr?'<div class="label" style="margin-top:6px">📍 '+p.addr+'</div>':'')+(p.memo?'<div style="margin-top:6px;font-size:13px;color:#555">'+p.memo.replace(/\n/g,'<br>')+'</div>':'')+'</div>').join('');
+}
+function ws(t){
+  const q=v('sq').trim();if(!q){alert('검색어');return}
+  const e=encodeURIComponent(q);
+  const u={google:'https://www.google.com/search?q='+e,map:'https://www.google.com/maps/search/'+e,yt:'https://www.youtube.com/results?search_query='+e+'+여행',blog:'https://search.naver.com/search.naver?where=blog&query='+e+'+여행'};
+  go(u[t]);
+}
+function mapO(q){go('https://www.google.com/maps/search/'+encodeURIComponent(q))}
+
+// =========== 체크리스트 ===========
+let cCL='before';
+function setCL(c){cCL=c;document.querySelectorAll('#p-cl .pill-row .pill').forEach((p,i)=>p.classList.toggle('active',['before','pack','day'][i]===c));renderCL()}
+function renderCL(){
+  const it=DB.cl[cCL]||[];
+  document.getElementById('cla').innerHTML=it.map((x,i)=>{
+    const k=cCL+'-'+i,d=DB.cld[k];
+    return '<div class="cl-item '+(d?'done':'')+'" onclick="tCL(\''+cCL+'\','+i+')"><input type="checkbox" '+(d?'checked':'')+' onclick="event.stopPropagation();tCL(\''+cCL+'\','+i+')"><label>'+x+'</label><button class="sm-btn" onclick="event.stopPropagation();dCL(\''+cCL+'\','+i+')">×</button></div>';
+  }).join('')||'<div class="empty">없음</div>';
+}
+function tCL(c,i){const k=c+'-'+i;DB.cld[k]=!DB.cld[k];s();renderCL()}
+function addCL(){const x=v('cn').trim();if(!x)return;DB.cl[cCL].push(x);document.getElementById('cn').value='';s();renderCL()}
+function dCL(c,i){DB.cl[c].splice(i,1);DB.cld={};s();renderCL()}
+
+// =========== 환율 ===========
+function saveR(){
+  const c=v('rc').toUpperCase(),x=parseFloat(v('rv'));
+  if(!c||!x){alert('통화·환율');return}
+  DB.rates=DB.rates.filter(r=>r.cur!==c);DB.rates.push({cur:c,val:x});s();
+  document.getElementById('rc').value='';document.getElementById('rv').value='';renderR();fillC();
+}
+function delR(c){DB.rates=DB.rates.filter(r=>r.cur!==c);s();renderR();fillC()}
+function renderR(){
+  const list=document.getElementById('rl');
+  if(DB.rates.length===0){list.innerHTML='<div class="label" style="text-align:center;padding:8px">없음</div>';return}
+  list.innerHTML=DB.rates.map(r=>'<div class="row" style="padding:6px 0;border-top:1px solid #f0f0f0"><span class="val">'+r.cur+'</span><span class="label">100 = '+r.val+' 원</span><button class="sm-btn" onclick="delR(\''+r.cur+'\')">×</button></div>').join('');
+}
+function fillC(){
+  const sel=document.getElementById('cc');
+  sel.innerHTML=DB.rates.map(r=>'<option value="'+r.val+'">'+r.cur+' → KRW (100당 '+r.val+'원)</option>').join('')||'<option>먼저 환율 저장</option>';
+  calc();
+}
+function calc(){
+  const r=parseFloat(document.getElementById('cc').value),a=parseFloat(v('ca'));
+  if(!r||!a){document.getElementById('cr').innerText='— 원';return}
+  document.getElementById('cr').innerText=(a*r/100).toLocaleString('ko-KR',{maximumFractionDigits:0})+' 원';
+}
+function renderS(){document.getElementById('sf').innerText=DB.flights.length;document.getElementById('sp').innerText=DB.places.length}
+
+// =========== 데이터 / 네트워크 ===========
+function exportD(){
+  const b=new Blob([JSON.stringify(DB,null,2)],{type:'application/json'});
+  const u=URL.createObjectURL(b),a=document.createElement('a');
+  a.href=u;a.download='travel-helper-backup.json';a.click();URL.revokeObjectURL(u);
+}
+function resetA(){if(!confirm('초기화?'))return;localStorage.removeItem(KEY);location.reload()}
+function uNet(){
+  const e=document.getElementById('ns');if(!e)return;
+  if(navigator.onLine){e.innerText='🌐 온라인';e.style.background='rgba(46,213,115,.5)'}
+  else{e.innerText='📵 오프라인';e.style.background='rgba(231,76,60,.5)'}
+}
+
+renderF();renderPH();loadKey();uNet();
+window.addEventListener('online',uNet);window.addEventListener('offline',uNet);
+</script>
+</body>
+</html>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               
