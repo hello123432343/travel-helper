@@ -1,0 +1,17 @@
+{
+  "name": "travel-helper-app",
+  "version": "1.0.0",
+  "description": "여행 도우미 - 네이티브 안드로이드 앱",
+  "scripts": {
+    "build": "echo 'No build step needed - static files'",
+    "cap:sync": "npx cap sync android",
+    "android": "npx cap open android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.1.2",
+    "@capacitor/core": "^6.1.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.1.2"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "appId": "com.bureadnam.travelhelper",
+  "appName": "여행 도우미",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": true
+  },
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    }
+  }
+}
