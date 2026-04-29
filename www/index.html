@@ -393,14 +393,18 @@ function isValidIata(c){if(!c||c.length!==3)return false;if(!/^[A-Z]{3}$/.test(c
 // 일반 검색엔진 결과 파싱 (Google/Bing/DDG 공용)
 function parseGeneric(html,num){
   const r={num:num};
+  // HTML 태그 제거해서 평문으로 변환 (Google 등 span으로 쪼개분리한 경우)
+  const text=html.replace(/<[^>]+>/g,' ').replace(/&[a-z]+;/gi,' ').replace(/\s+/g,' ');
+  // 원본과 평문 둘 다 검색 (감지윜율 향상)
+  const both=html+'\n'+text;
   // 시간 (다양한 형식)
   const tm=html.match(/\b(\d{1,2}:\d{2}\s?(?:AM|PM|오전|오후)?)\b/g);
   if(tm)r.times=[...new Set(tm)].slice(0,4);
   // 게이트 (한/영)
-  let gm=html.match(/(?:게이트|Gate)\s*[:#]?\s*([A-Z]?\d{1,3})\b/);
+  let gm=both.match(/(?:게이트|Gate)\s*[:#]?\s*([A-Z]?\d{1,3})\b/);
   if(gm)r.gate=gm[1];
   // 터미널
-  let trm=html.match(/(?:터미널|Terminal)\s*[:#]?\s*(T?\d{1,2})\b/);
+  let trm=both.match(/(?:터미널|Terminal)\s*[:#]?\s*(T?\d{1,2})\b/);
   if(trm)r.terminal=trm[1];
   // 상태
   if(html.match(/정시\s*도착|on\s*time|정상/i))r.status='정시';
@@ -419,7 +423,7 @@ function parseGeneric(html,num){
     /\bfrom\s+([A-Z]{3})\s+to\s+([A-Z]{3})\b/,
     /([A-Z]{3})\s*에서\s*([A-Z]{3})/,
   ];
-  for(const p of ip){const m=html.match(p);if(m&&isValidIata(m[1])&&isValidIata(m[2])&&m[1]!==m[2]){r.from=m[1];r.to=m[2];break;}}
+  for(const p of ip){const m=both.match(p);if(m&&isValidIata(m[1])&&isValidIata(m[2])&&m[1]!==m[2]){r.from=m[1];r.to=m[2];break;}}
   // 항공사
   // 편명 prefix로 항공사 매핑 (HTML 내 항공사명 매칭보다 정확)
   const AIRLINE_MAP={KE:'Korean Air',OZ:'Asiana',JL:'Japan Airlines',NH:'ANA',UA:'United',AA:'American',DL:'Delta',CX:'Cathay Pacific',SQ:'Singapore Airlines',TG:'Thai Airways',VN:'Vietnam Airlines',CI:'China Airlines',MU:'China Eastern',CZ:'China Southern',CA:'Air China',LH:'Lufthansa',BA:'British Airways',AF:'Air France',KL:'KLM',QR:'Qatar Airways',EK:'Emirates',TK:'Turkish Airlines',JJ:'Jeju Air','7C':'Jeju Air',LJ:'Jin Air',TW:'T-way',ZE:'Eastar',BX:'Air Busan',YP:'Air Premia',RS:'Air Seoul'};
