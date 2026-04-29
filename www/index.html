@@ -376,6 +376,8 @@ async function autoLookup(){
     }
   }
 
+  // 병합 후 검증: from === to 이면 제거
+  if(merged.from&&merged.to&&merged.from===merged.to){delete merged.from;delete merged.to;}
   if(merged._sources.length===0){
     out.innerHTML='<div class="card" style="background:#ffe7e7">😶 모든 소스 조회 실패<br><span style="font-size:12px;color:#888">'+merged._failed.join('<br>')+'</span></div>';
     return;
@@ -385,7 +387,7 @@ async function autoLookup(){
 }
 
 // IATA 검증
-const IATA_BAD=new Set(['THE','AND','FOR','NEW','USA','UTC','GMT','API','URL','PDF','CEO','CFO','VIP','FAQ','FAA','TSA','HTM','XML','CSS','SVG','JPG','PNG','GIF','WWW','COM','ORG','NET','EXE','APP','PRO','DEV','OPS','LAW','TAX','BUY','GET','PUT','SET','RUN','TOP','END','OFF','OUT','DAY','WAY','NOW','OWN','OLD','BIG','SUN','EAT','EAR','EYE','RED','LET','MAP','BUS','CAR','FAR','ALL','ANY','ASK','BAD','BIT','BOX','CAT','DOG','HOT','ICE','KEY','LOG','MEN','NOR','ONE','OUR','PAY','SAY','SEE','SIX','TEN','TIE','TOO','TRY','TWO','USE','VAN','WAR','WAS','WIN','YES','YOU','PRE','POS','SUB','MID','NON','RAW','GAS','OIL','DRY','WET','UNI','TED','ITE','BUT','HAS','HAD','HER','HIS','HIM','SHE','HOW','WHO','WHY','HAVE','WITH','FROM','THEY','THIS','THAT','EACH','SOME','MORE','MOST','VERY','TIME','OVER','MUCH','MANY','ONLY','FIND','HERE','LIKE','MADE','MAKE','LIFE','LIVE','LOOK','PART','PLAY','TAKE','TURN','WHEN','GOOD','BACK','WILL','SOON']);
+const IATA_BAD=new Set(['EDT','EST','PST','PDT','CST','CDT','MST','MDT','UTC','GMT','BST','JST','KST','THE','AND','FOR','NEW','USA','UTC','GMT','API','URL','PDF','CEO','CFO','VIP','FAQ','FAA','TSA','HTM','XML','CSS','SVG','JPG','PNG','GIF','WWW','COM','ORG','NET','EXE','APP','PRO','DEV','OPS','LAW','TAX','BUY','GET','PUT','SET','RUN','TOP','END','OFF','OUT','DAY','WAY','NOW','OWN','OLD','BIG','SUN','EAT','EAR','EYE','RED','LET','MAP','BUS','CAR','FAR','ALL','ANY','ASK','BAD','BIT','BOX','CAT','DOG','HOT','ICE','KEY','LOG','MEN','NOR','ONE','OUR','PAY','SAY','SEE','SIX','TEN','TIE','TOO','TRY','TWO','USE','VAN','WAR','WAS','WIN','YES','YOU','PRE','POS','SUB','MID','NON','RAW','GAS','OIL','DRY','WET','UNI','TED','ITE','BUT','HAS','HAD','HER','HIS','HIM','SHE','HOW','WHO','WHY','HAVE','WITH','FROM','THEY','THIS','THAT','EACH','SOME','MORE','MOST','VERY','TIME','OVER','MUCH','MANY','ONLY','FIND','HERE','LIKE','MADE','MAKE','LIFE','LIVE','LOOK','PART','PLAY','TAKE','TURN','WHEN','GOOD','BACK','WILL','SOON']);
 function isValidIata(c){if(!c||c.length!==3)return false;if(!/^[A-Z]{3}$/.test(c))return false;return !IATA_BAD.has(c);}
 
 // 일반 검색엔진 결과 파싱 (Google/Bing/DDG 공용)
@@ -419,8 +421,10 @@ function parseGeneric(html,num){
   ];
   for(const p of ip){const m=html.match(p);if(m&&isValidIata(m[1])&&isValidIata(m[2])&&m[1]!==m[2]){r.from=m[1];r.to=m[2];break;}}
   // 항공사
-  const ar=html.match(/(Korean\s*Air|Asiana|Japan\s*Airlines|All\s*Nippon|Delta|United|American|Lufthansa|Cathay|Singapore\s*Airlines|Qatar|Emirates|대한항공|아시아나|일본항공)/i);
-  if(ar)r.airline=ar[1];
+  // 편명 prefix로 항공사 매핑 (HTML 내 항공사명 매칭보다 정확)
+  const AIRLINE_MAP={KE:'Korean Air',OZ:'Asiana',JL:'Japan Airlines',NH:'ANA',UA:'United',AA:'American',DL:'Delta',CX:'Cathay Pacific',SQ:'Singapore Airlines',TG:'Thai Airways',VN:'Vietnam Airlines',CI:'China Airlines',MU:'China Eastern',CZ:'China Southern',CA:'Air China',LH:'Lufthansa',BA:'British Airways',AF:'Air France',KL:'KLM',QR:'Qatar Airways',EK:'Emirates',TK:'Turkish Airlines',JJ:'Jeju Air','7C':'Jeju Air',LJ:'Jin Air',TW:'T-way',ZE:'Eastar',BX:'Air Busan',YP:'Air Premia',RS:'Air Seoul'};
+  const pfx=num.match(/^([A-Z0-9]{2,3})/);
+  if(pfx&&AIRLINE_MAP[pfx[1]])r.airline=AIRLINE_MAP[pfx[1]];
   return r;
 }
 
