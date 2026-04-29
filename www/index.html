@@ -384,6 +384,10 @@ async function autoLookup(){
   renderAutoLookup(merged,out);
 }
 
+// IATA 검증
+const IATA_BAD=new Set(['THE','AND','FOR','NEW','USA','UTC','GMT','API','URL','PDF','CEO','CFO','VIP','FAQ','FAA','TSA','HTM','XML','CSS','SVG','JPG','PNG','GIF','WWW','COM','ORG','NET','EXE','APP','PRO','DEV','OPS','LAW','TAX','BUY','GET','PUT','SET','RUN','TOP','END','OFF','OUT','DAY','WAY','NOW','OWN','OLD','BIG','SUN','EAT','EAR','EYE','RED','LET','MAP','BUS','CAR','FAR','ALL','ANY','ASK','BAD','BIT','BOX','CAT','DOG','HOT','ICE','KEY','LOG','MEN','NOR','ONE','OUR','PAY','SAY','SEE','SIX','TEN','TIE','TOO','TRY','TWO','USE','VAN','WAR','WAS','WIN','YES','YOU','PRE','POS','SUB','MID','NON','RAW','GAS','OIL','DRY','WET','UNI','TED','ITE','BUT','HAS','HAD','HER','HIS','HIM','SHE','HOW','WHO','WHY','HAVE','WITH','FROM','THEY','THIS','THAT','EACH','SOME','MORE','MOST','VERY','TIME','OVER','MUCH','MANY','ONLY','FIND','HERE','LIKE','MADE','MAKE','LIFE','LIVE','LOOK','PART','PLAY','TAKE','TURN','WHEN','GOOD','BACK','WILL','SOON']);
+function isValidIata(c){if(!c||c.length!==3)return false;if(!/^[A-Z]{3}$/.test(c))return false;return !IATA_BAD.has(c);}
+
 // 일반 검색엔진 결과 파싱 (Google/Bing/DDG 공용)
 function parseGeneric(html,num){
   const r={num:num};
@@ -391,11 +395,10 @@ function parseGeneric(html,num){
   const tm=html.match(/\b(\d{1,2}:\d{2}\s?(?:AM|PM|오전|오후)?)\b/g);
   if(tm)r.times=[...new Set(tm)].slice(0,4);
   // 게이트 (한/영)
-  let gm=html.match(/(?:게이트|Gate)[:\s ]+([A-Z]?\d{1,3})/i);
-  if(!gm)gm=html.match(/>\s*Gate\s*([A-Z]?\d{1,3})\s*</i);
+  let gm=html.match(/(?:게이트|Gate)\s*[:#]?\s*([A-Z]?\d{1,3})\b/);
   if(gm)r.gate=gm[1];
   // 터미널
-  let trm=html.match(/(?:터미널|Terminal)[:\s ]+(\d+|[A-Z])/i);
+  let trm=html.match(/(?:터미널|Terminal)\s*[:#]?\s*(T?\d{1,2})\b/);
   if(trm)r.terminal=trm[1];
   // 상태
   if(html.match(/정시\s*도착|on\s*time|정상/i))r.status='정시';
@@ -410,11 +413,11 @@ function parseGeneric(html,num){
   const ip=[
     /\b([A-Z]{3})\b\s*[→\-–]\s*\b([A-Z]{3})\b/,
     /\(([A-Z]{3})\)[^()]*?\(([A-Z]{3})\)/,
-    /([A-Z]{3})\s*to\s*([A-Z]{3})/i,
-    /from\s*([A-Z]{3})\s*to\s*([A-Z]{3})/i,
+    /\b([A-Z]{3})\s+to\s+([A-Z]{3})\b/,
+    /\bfrom\s+([A-Z]{3})\s+to\s+([A-Z]{3})\b/,
     /([A-Z]{3})\s*에서\s*([A-Z]{3})/,
   ];
-  for(const p of ip){const m=html.match(p);if(m){r.from=m[1];r.to=m[2];break;}}
+  for(const p of ip){const m=html.match(p);if(m&&isValidIata(m[1])&&isValidIata(m[2])&&m[1]!==m[2]){r.from=m[1];r.to=m[2];break;}}
   // 항공사
   const ar=html.match(/(Korean\s*Air|Asiana|Japan\s*Airlines|All\s*Nippon|Delta|United|American|Lufthansa|Cathay|Singapore\s*Airlines|Qatar|Emirates|대한항공|아시아나|일본항공)/i);
   if(ar)r.airline=ar[1];
